@@ -1,55 +1,88 @@
 const { test, expect } = require("@playwright/test");
 
-test.describe("Artemis II wallpaper site", () => {
-  test("desktop homepage renders key content and filters wallpapers", async ({ page }) => {
-    await page.goto("/");
+test("homepage exposes the tribute skill map", async ({ page }) => {
+  await page.goto("/");
 
-    await expect(page).toHaveTitle(/Artemis II Wallpaper/i);
-    await expect(page.locator("h1")).toHaveText("Artemis II Wallpaper");
-    await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /publicly released NASA mission imagery/i);
-    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://artemis-2-wallpaper.lol/");
+  await expect(page).toHaveTitle(/Andrej Karpathy Skills/);
+  await expect(page.getByRole("heading", { name: "Andrej Karpathy Skills" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Explore skill map" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Six visible signals." })).toBeVisible();
+  await expect(page.getByText("Unofficial tribute page.")).toBeVisible();
+});
 
-    const wallpaperCards = page.locator(".wallpaper-card");
-    await expect(wallpaperCards).toHaveCount(10);
-    await expect(page.getByText("Not an official NASA website.")).toBeVisible();
+test("brand assets are served", async ({ page }) => {
+  await page.goto("/");
 
-    await page.getByRole("button", { name: "Posters" }).click();
-    await expect(page.locator(".wallpaper-card:not([hidden])")).toHaveCount(2);
-    await expect(page.locator("[data-results-count]")).toHaveText("Showing 2 wallpapers");
+  for (const path of [
+    "/favicon.ico",
+    "/assets/brand/logo.png",
+    "/assets/brand/logo-mark.png",
+    "/assets/brand/favicon-32x32.png",
+    "/assets/brand/og-image.png"
+  ]) {
+    const response = await page.request.get(path);
+    expect(response.ok(), `${path} should return 200`).toBeTruthy();
+    expect(Number(response.headers()["content-length"] || 1), `${path} should not be empty`).toBeGreaterThan(0);
+  }
+});
 
-    await page.getByRole("button", { name: "All" }).click();
-    await expect(page.locator(".wallpaper-card:not([hidden])")).toHaveCount(10);
+test("seo surfaces canonical, sitemap, robots and absolute social metadata", async ({ page }) => {
+  await page.goto("/");
 
-    for (const image of await page.locator("img").all()) {
-      await image.scrollIntoViewIfNeeded();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://andrej-karpathy-skills.lol/");
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute("content", "https://andrej-karpathy-skills.lol/");
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+    "content",
+    "https://andrej-karpathy-skills.lol/assets/brand/og-image.png"
+  );
+  await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute(
+    "content",
+    "https://andrej-karpathy-skills.lol/assets/brand/og-image.png"
+  );
+  const structuredData = await page.locator('script[type="application/ld+json"]').textContent();
+  expect(structuredData || "").toContain("Andrej Karpathy");
+
+  const robots = await page.request.get("/robots.txt");
+  expect(robots.ok()).toBeTruthy();
+  await expect.soft(robots.text()).resolves.toContain("Sitemap: https://andrej-karpathy-skills.lol/sitemap.xml");
+
+  const sitemap = await page.request.get("/sitemap.xml");
+  expect(sitemap.ok()).toBeTruthy();
+  await expect.soft(sitemap.text()).resolves.toContain("<loc>https://andrej-karpathy-skills.lol/</loc>");
+});
+
+test("primary sections fit mobile viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const heroTitle = page.getByRole("heading", { name: "Andrej Karpathy Skills" });
+  const box = await heroTitle.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  const viewportWidth = await page.evaluate(() => window.innerWidth);
+  expect(scrollWidth).toBeLessThanOrEqual(viewportWidth + 1);
+  await expect(page.getByRole("link", { name: "Trace learning trail" })).toBeVisible();
+});
+
+test("hero neural canvas renders colored signal pixels", async ({ page }) => {
+  await page.goto("/");
+  const coloredPixels = await page.locator("#neural-field").evaluate((canvas) => {
+    const context = canvas.getContext("2d");
+    const { width, height } = canvas;
+    const sample = context.getImageData(0, 0, width, height).data;
+    let count = 0;
+    for (let index = 0; index < sample.length; index += 16) {
+      const red = sample[index];
+      const green = sample[index + 1];
+      const blue = sample[index + 2];
+      if (Math.max(red, green, blue) - Math.min(red, green, blue) > 24) {
+        count += 1;
+      }
     }
-
-    const imagesLoaded = await page.evaluate(() =>
-      Array.from(document.images).every((image) => image.complete && image.naturalWidth > 0)
-    );
-    expect(imagesLoaded).toBe(true);
+    return count;
   });
 
-  test("mobile layout stays within viewport and keeps gallery accessible", async ({ browser }) => {
-    const context = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-      isMobile: true
-    });
-    const page = await context.newPage();
-
-    await page.goto("/");
-
-    await expect(page.locator("h1")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Explore the Collection" })).toBeVisible();
-    await page.getByRole("link", { name: "Explore the Collection" }).click();
-    await expect(page.locator("#gallery")).toBeInViewport();
-
-    const overflow = await page.evaluate(() => {
-      return document.documentElement.scrollWidth - window.innerWidth;
-    });
-    expect(overflow).toBeLessThanOrEqual(1);
-
-    await expect(page.locator(".wallpaper-card")).toHaveCount(10);
-    await context.close();
-  });
+  expect(coloredPixels).toBeGreaterThan(100);
 });

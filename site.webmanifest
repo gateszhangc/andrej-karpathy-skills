@@ -1,21 +1,22 @@
 {
-  "name": "Artemis II Wallpaper",
-  "short_name": "Artemis II",
-  "description": "Independent editorial collection of Artemis II wallpapers using publicly released NASA imagery with source credit.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#050912",
-  "theme_color": "#050912",
+  "name": "Andrej Karpathy Skills",
+  "short_name": "AK Skills",
+  "description": "An unofficial visual tribute and skill map for Andrej Karpathy's public work.",
+  "start_url": "https://andrej-karpathy-skills.lol/",
+  "scope": "https://andrej-karpathy-skills.lol/",
   "icons": [
     {
-      "src": "/assets/brand/favicon.png",
-      "sizes": "256x256",
+      "src": "/assets/brand/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/assets/brand/apple-touch-icon.png",
-      "sizes": "180x180",
+      "src": "/assets/brand/icon-512.png",
+      "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#101213",
+  "background_color": "#f6f7f2",
+  "display": "standalone"
 }

@@ -7,6 +7,7 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
 COPY assets ./assets
+COPY favicon.ico ./favicon.ico
 COPY index.html ./index.html
 COPY robots.txt ./robots.txt
 COPY script.js ./script.js
@@ -18,3 +19,4 @@ COPY styles.css ./styles.css
 EXPOSE 3000
 
 CMD ["node", "server.js"]
+

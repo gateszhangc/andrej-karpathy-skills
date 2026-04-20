@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: andrej-karpathy-skills
+  annotations:
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/issue-temporary-certificate: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - secretName: andrej-karpathy-skills-live-tls
+      hosts:
+        - andrej-karpathy-skills.lol
+        - www.andrej-karpathy-skills.lol
+  rules:
+    - host: andrej-karpathy-skills.lol
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: andrej-karpathy-skills
+                port:
+                  number: 80
+    - host: www.andrej-karpathy-skills.lol
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: andrej-karpathy-skills
+                port:
+                  number: 80

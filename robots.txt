@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://artemis-2-wallpaper.lol/sitemap.xml
+Host: https://andrej-karpathy-skills.lol
+Sitemap: https://andrej-karpathy-skills.lol/sitemap.xml
+

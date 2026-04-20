@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: andrej-karpathy-skills
+  labels:
+    app.kubernetes.io/name: andrej-karpathy-skills
+    app.kubernetes.io/part-of: andrej-karpathy-skills
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: andrej-karpathy-skills
+      app.kubernetes.io/part-of: andrej-karpathy-skills
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: andrej-karpathy-skills
+        app.kubernetes.io/part-of: andrej-karpathy-skills
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      imagePullSecrets:
+        - name: dokploy-fleet-ghcr
+      containers:
+        - name: web
+          image: registry.144.91.77.245.sslip.io/andrej-karpathy-skills:bootstrap
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+            - name: HOSTNAME
+              value: 0.0.0.0
+          ports:
+            - name: http
+              containerPort: 3000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            httpGet:
+              path: /healthz
+              port: 3000
+          livenessProbe:
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            httpGet:
+              path: /healthz
+              port: 3000
+          startupProbe:
+            failureThreshold: 30
+            periodSeconds: 5
+            httpGet:
+              path: /healthz
+              port: 3000

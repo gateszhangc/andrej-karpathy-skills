@@ -1,14 +1,14 @@
 {
-  "name": "artemis-2-wallpaper",
+  "name": "andrej-karpathy-skills",
   "version": "1.0.0",
   "private": true,
-  "description": "Static Artemis II wallpaper site built from publicly released NASA imagery.",
+  "description": "A static unofficial tribute page mapping Andrej Karpathy's public skill themes.",
   "scripts": {
-    "start": "node server.js",
-    "test": "playwright test",
-    "test:browser": "playwright test"
+    "assets": "python3 scripts/generate_brand_assets.py",
+    "serve": "python3 -m http.server 4174 --bind 127.0.0.1",
+    "test": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.2"
+    "@playwright/test": "^1.52.0"
   }
 }

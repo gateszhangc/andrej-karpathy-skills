@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: andrej-karpathy-skills
+  labels:
+    app.kubernetes.io/name: andrej-karpathy-skills
+    app.kubernetes.io/part-of: andrej-karpathy-skills

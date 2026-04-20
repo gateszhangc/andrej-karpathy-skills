@@ -1,165 +1,143 @@
-#!/usr/bin/env python3
-from __future__ import annotations
-
 from pathlib import Path
+from PIL import Image, ImageDraw, ImageFont
+import math
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
-
-
-ROOT = Path(__file__).resolve().parent.parent
-BRAND_DIR = ROOT / "assets" / "brand"
-FONT_DIR = ROOT / "assets" / "fonts"
-
-TEXT_FONT = FONT_DIR / "Tektur-Medium.ttf"
-BODY_FONT = FONT_DIR / "InstrumentSans-Regular.ttf"
-
-BG = (7, 10, 20, 255)
-PANEL = (15, 23, 43, 240)
-STROKE = (86, 108, 143, 255)
-ORANGE = (255, 137, 58, 255)
-ICE = (220, 233, 255, 255)
-ASH = (108, 126, 158, 255)
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "assets" / "brand"
+INK = "#101213"
+PAPER = "#f6f7f2"
+LINE = "#d9ddd5"
+CYAN = "#24c6c8"
+RED = "#f05a45"
+GREEN = "#9fbf50"
+GOLD = "#d6a83c"
 
 
-def font(path: Path, size: int) -> ImageFont.FreeTypeFont:
-    return ImageFont.truetype(str(path), size=size)
-
-
-def draw_mark(base: Image.Image, with_panel: bool = False) -> None:
-    draw = ImageDraw.Draw(base)
-    width, height = base.size
-
-    if with_panel:
-        draw.rounded_rectangle(
-            (32, 32, width - 32, height - 32),
-            radius=width // 6,
-            fill=PANEL,
-            outline=(35, 52, 80, 255),
-            width=3,
-        )
-
-    cx, cy = width / 2, height / 2
-    scale = min(width, height)
-    orbit_box = (
-        cx - scale * 0.28,
-        cy - scale * 0.20,
-        cx + scale * 0.28,
-        cy + scale * 0.20,
-    )
-    secondary_box = (
-        cx - scale * 0.17,
-        cy - scale * 0.34,
-        cx + scale * 0.17,
-        cy + scale * 0.34,
-    )
-
-    glow = Image.new("RGBA", base.size, (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow)
-    glow_draw.ellipse(
-        (cx - scale * 0.08, cy - scale * 0.08, cx + scale * 0.08, cy + scale * 0.08),
-        fill=(255, 137, 58, 220),
-    )
-    glow_draw.arc(orbit_box, start=215, end=15, fill=(255, 137, 58, 180), width=max(4, int(scale * 0.028)))
-    glow = glow.filter(ImageFilter.GaussianBlur(radius=scale * 0.015))
-    base.alpha_composite(glow)
-
-    draw.arc(orbit_box, start=210, end=20, fill=ORANGE, width=max(4, int(scale * 0.025)))
-    draw.arc(secondary_box, start=122, end=325, fill=ICE, width=max(2, int(scale * 0.018)))
-
-    moon_box = (
-        cx - scale * 0.09,
-        cy - scale * 0.09,
-        cx + scale * 0.09,
-        cy + scale * 0.09,
-    )
-    draw.ellipse(moon_box, fill=ICE)
-    draw.ellipse(
-        (
-            moon_box[0] + scale * 0.05,
-            moon_box[1] - scale * 0.008,
-            moon_box[2] + scale * 0.06,
-            moon_box[3] + scale * 0.008,
-        ),
-        fill=BG if not with_panel else PANEL,
-    )
-
-    capsule = [
-        (cx - scale * 0.03, cy + scale * 0.13),
-        (cx + scale * 0.04, cy + scale * 0.04),
-        (cx + scale * 0.08, cy + scale * 0.08),
-        (cx + scale * 0.01, cy + scale * 0.17),
+def font(size, bold=False):
+    candidates = [
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/System/Library/Fonts/Supplemental/Helvetica Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Helvetica.ttf",
+        "/Library/Fonts/Arial Unicode.ttf",
     ]
-    draw.polygon(capsule, fill=ASH, outline=ICE)
-    draw.line(
-        (cx - scale * 0.20, cy + scale * 0.24, cx + scale * 0.22, cy + scale * 0.24),
-        fill=STROKE,
-        width=max(2, int(scale * 0.012)),
-    )
-    draw.ellipse(
-        (cx + scale * 0.23, cy - scale * 0.18, cx + scale * 0.27, cy - scale * 0.14),
-        fill=ORANGE,
-    )
+    for candidate in candidates:
+        try:
+            return ImageFont.truetype(candidate, size=size)
+        except OSError:
+            continue
+    return ImageFont.load_default(size=size)
 
 
-def create_mark() -> None:
-    image = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
-    draw_mark(image)
-    image.save(BRAND_DIR / "logo-mark.png")
+def draw_grid(draw, size, margin, step, color, alpha=58):
+    rgba = (*Image.new("RGB", (1, 1), color).getpixel((0, 0)), alpha)
+    for x in range(margin, size - margin + 1, step):
+        draw.line((x, margin, x, size - margin), fill=rgba, width=2)
+    for y in range(margin, size - margin + 1, step):
+        draw.line((margin, y, size - margin, y), fill=rgba, width=2)
 
 
-def create_wordmark() -> None:
-    image = Image.new("RGBA", (1500, 480), (0, 0, 0, 0))
-    mark = Image.new("RGBA", (420, 420), (0, 0, 0, 0))
-    draw_mark(mark, with_panel=True)
-    image.alpha_composite(mark, (24, 30))
-
-    draw = ImageDraw.Draw(image)
-    headline_font = font(TEXT_FONT, 116)
-    meta_font = font(BODY_FONT, 34)
-    draw.text((470, 92), "ORBITAL", font=headline_font, fill=ICE)
-    draw.text((470, 208), "SIGNAL", font=headline_font, fill=ORANGE)
-    draw.text((476, 336), "ARTEMIS II WALLPAPER ARCHIVE", font=meta_font, fill=(154, 173, 202, 255))
-    draw.line((474, 316, 1148, 316), fill=STROKE, width=3)
-    image.save(BRAND_DIR / "logo-wordmark.png")
-
-
-def create_favicon() -> None:
-    favicon = Image.new("RGBA", (256, 256), BG)
-    draw_mark(favicon, with_panel=True)
-    favicon.save(BRAND_DIR / "favicon.png")
-    favicon.resize((180, 180), Image.Resampling.LANCZOS).save(BRAND_DIR / "apple-touch-icon.png")
+def node_points(size):
+    raw = [
+        (0.24, 0.28, CYAN),
+        (0.41, 0.20, GOLD),
+        (0.61, 0.29, CYAN),
+        (0.76, 0.22, RED),
+        (0.30, 0.48, GREEN),
+        (0.52, 0.45, CYAN),
+        (0.70, 0.50, GOLD),
+        (0.22, 0.68, RED),
+        (0.43, 0.74, CYAN),
+        (0.64, 0.70, GREEN),
+        (0.80, 0.76, CYAN),
+    ]
+    return [(int(x * size), int(y * size), color) for x, y, color in raw]
 
 
-def create_social_card() -> None:
+def draw_mark(draw, size, with_letters=True):
+    margin = int(size * 0.105)
+    draw.rounded_rectangle((margin, margin, size - margin, size - margin), radius=int(size * 0.055), outline=(246, 247, 242, 210), width=max(3, size // 120))
+    draw_grid(draw, size, margin + int(size * 0.035), max(28, size // 9), PAPER, 42)
+
+    points = node_points(size)
+    edges = [(0, 1), (0, 4), (1, 2), (2, 3), (2, 5), (4, 5), (5, 6), (4, 7), (5, 8), (6, 9), (7, 8), (8, 9), (9, 10), (6, 10)]
+    for start, end in edges:
+        x1, y1, color = points[start]
+        x2, y2, _ = points[end]
+        draw.line((x1, y1, x2, y2), fill=(*Image.new("RGB", (1, 1), color).getpixel((0, 0)), 185), width=max(4, size // 70))
+
+    for x, y, color in points:
+        radius = max(8, size // 45)
+        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=color)
+        inner = max(3, radius // 3)
+        draw.ellipse((x - inner, y - inner, x + inner, y + inner), fill=PAPER)
+
+    if with_letters:
+        letter_font = font(int(size * 0.18), bold=True)
+        label = "AKS"
+        bbox = draw.textbbox((0, 0), label, font=letter_font)
+        text_w = bbox[2] - bbox[0]
+        draw.text(((size - text_w) / 2, size * 0.505), label, font=letter_font, fill=PAPER)
+
+
+def make_logo(path, size):
+    scale = 3
+    image = Image.new("RGBA", (size * scale, size * scale), INK)
+    draw = ImageDraw.Draw(image, "RGBA")
+    draw_mark(draw, size * scale, with_letters=True)
+    image = image.resize((size, size), Image.Resampling.LANCZOS)
+    image.save(path)
+
+
+def make_og(path):
     width, height = 1200, 630
-    image = Image.new("RGBA", (width, height), BG)
-    draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((36, 36, width - 36, height - 36), radius=40, outline=(29, 47, 76, 255), width=4)
-    draw.ellipse((-140, -180, 420, 380), fill=(18, 29, 55, 255))
-    draw.ellipse((760, 260, 1310, 820), fill=(13, 19, 36, 255))
-    draw.arc((120, 90, 530, 420), start=210, end=8, fill=ORANGE, width=14)
-    draw.arc((160, 60, 460, 480), start=125, end=330, fill=ICE, width=10)
-    draw.ellipse((260, 180, 380, 300), fill=ICE)
-    draw.ellipse((320, 170, 420, 310), fill=BG)
+    image = Image.new("RGBA", (width, height), INK)
+    draw = ImageDraw.Draw(image, "RGBA")
 
-    headline = font(TEXT_FONT, 78)
-    subhead = font(BODY_FONT, 30)
-    micro = font(BODY_FONT, 22)
-    draw.text((580, 150), "ARTEMIS II", font=headline, fill=ICE)
-    draw.text((580, 240), "WALLPAPER", font=headline, fill=ORANGE)
-    draw.text((582, 352), "HD NASA lunar mission backgrounds for desktop and phone", font=subhead, fill=(172, 188, 213, 255))
-    draw.text((582, 430), "Non-official editorial collection with source credit", font=micro, fill=(132, 151, 181, 255))
-    draw.line((582, 405, 1042, 405), fill=STROKE, width=3)
-    image.save(BRAND_DIR / "social-card.png")
+    for x in range(-40, width + 40, 58):
+      draw.line((x, 0, x + 260, height), fill=(246, 247, 242, 24), width=1)
+    for y in range(48, height, 58):
+      draw.line((0, y, width, y), fill=(246, 247, 242, 20), width=1)
+
+    for index in range(44):
+        x = 680 + int(math.sin(index * 1.8) * 210 + (index % 6) * 38)
+        y = 82 + int((index * 89) % 470)
+        color = [CYAN, RED, GREEN, GOLD][index % 4]
+        draw.ellipse((x - 5, y - 5, x + 5, y + 5), fill=color)
+        if index > 0:
+            px = 680 + int(math.sin((index - 1) * 1.8) * 210 + ((index - 1) % 6) * 38)
+            py = 82 + int(((index - 1) * 89) % 470)
+            draw.line((px, py, x, y), fill=(*Image.new("RGB", (1, 1), color).getpixel((0, 0)), 130), width=2)
+
+    draw.text((72, 96), "ANDREJ", font=font(86, bold=True), fill=PAPER)
+    draw.text((72, 190), "KARPATHY", font=font(86, bold=True), fill=PAPER)
+    draw.text((72, 298), "SKILLS", font=font(54, bold=True), fill=CYAN)
+    draw.text((76, 388), "neural intuition / code / teaching / AI systems", font=font(30), fill=(246, 247, 242, 215))
+    draw.line((76, 455, 520, 455), fill=RED, width=5)
+    draw.text((76, 488), "unofficial skill map", font=font(24, bold=True), fill=(246, 247, 242, 190))
+    image.convert("RGB").save(path, quality=94)
 
 
-def main() -> None:
-    BRAND_DIR.mkdir(parents=True, exist_ok=True)
-    create_mark()
-    create_wordmark()
-    create_favicon()
-    create_social_card()
-    print(f"Brand assets generated in {BRAND_DIR}")
+def make_icons(source):
+    sizes = {
+        "favicon-16x16.png": 16,
+        "favicon-32x32.png": 32,
+        "favicon-96x96.png": 96,
+        "apple-touch-icon.png": 180,
+        "icon-192.png": 192,
+        "icon-512.png": 512,
+    }
+    for name, size in sizes.items():
+        source.resize((size, size), Image.Resampling.LANCZOS).save(OUT / name)
+    ico_sizes = [(16, 16), (32, 32), (48, 48)]
+    source.save(ROOT / "favicon.ico", sizes=ico_sizes)
+
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
+    make_logo(OUT / "logo.png", 1024)
+    make_logo(OUT / "logo-mark.png", 512)
+    mark = Image.open(OUT / "logo-mark.png").convert("RGBA")
+    make_icons(mark)
+    make_og(OUT / "og-image.png")
 
 
 if __name__ == "__main__":
