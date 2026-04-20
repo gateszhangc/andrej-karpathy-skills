@@ -5,4 +5,4 @@ resources:
   - ingress.yaml
 images:
   - name: registry.144.91.77.245.sslip.io/andrej-karpathy-skills
-    newTag: bootstrap
+    newTag: 6e8059d11322c4d8405a2b048bb6ff8df586ed31
